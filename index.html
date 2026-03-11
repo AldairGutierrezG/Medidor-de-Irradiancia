@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medidor Solar LabVolt</title>
+
+<link rel="manifest" href='data:application/manifest+json,{"name":"Medidor Solar LabVolt","short_name":"SolarLabVolt","start_url":".","display":"standalone","background_color":"#ffffff","theme_color":"#0c4a7a"}'>
+
+<style>
+body{
+font-family:Arial, sans-serif;
+background:#eef3f8;
+margin:0;
+display:flex;
+justify-content:center;
+align-items:center;
+min-height:100vh;
+}
+
+.logo{
+position:fixed;
+width:120px;
+top:10px;
+}
+
+.top-left{left:10px}
+.top-right{right:10px}
+
+.container{
+background:white;
+padding:25px;
+border-radius:12px;
+box-shadow:0 0 12px rgba(0,0,0,0.2);
+width:95%;
+max-width:420px;
+text-align:center;
+}
+
+h2{margin-bottom:4px;color:#0c4a7a}
+
+.autor{
+font-size:14px;
+color:#555;
+margin-bottom:10px;
+}
+
+input{
+width:90%;
+padding:10px;
+font-size:18px;
+margin:10px;
+}
+
+button{
+padding:10px 20px;
+font-size:16px;
+border:none;
+border-radius:6px;
+background:#1a73e8;
+color:white;
+cursor:pointer;
+}
+
+button:hover{background:#1258b5}
+
+#resultado{
+font-size:28px;
+font-weight:bold;
+margin-top:10px;
+}
+
+.info{
+font-size:14px;
+margin-top:5px;
+color:#444;
+}
+
+canvas{
+margin-top:15px;
+}
+
+.table-container{
+max-height:150px;
+overflow-y:auto;
+margin-top:15px;
+}
+
+table{
+width:100%;
+font-size:14px;
+border-collapse:collapse;
+}
+
+td,th{
+border-bottom:1px solid #ddd;
+padding:4px;
+}
+
+.save-btn{
+margin-top:10px;
+background:#1b8a3c;
+}
+
+</style>
+</head>
+
+<body>
+
+<img src="utld.png" class="logo top-left">
+<img src="renders.png" class="logo top-right">
+
+<div class="container">
+
+<h2>Calculadora de Irradiancia</h2>
+<div class="autor">Ing. Braulio Aldair Gutierrez G.</div>
+
+<p>Piranómetro LabVolt</p>
+<p><b>Sensibilidad fija: 10.55 µV/(W/m²)</b></p>
+
+<input type="number" id="mv" placeholder="Voltaje (mV)">
+
+<button onclick="calcular()">Calcular</button>
+
+<div id="resultado">---</div>
+
+<div class="info" id="temp">Temperatura estimada: -- °C</div>
+<div class="info" id="ubicacion">Ubicación: --</div>
+
+<!-- MEDIDOR SOLAR -->
+<canvas id="gauge" width="320" height="200"></canvas>
+
+<!-- POSICIÓN DEL SOL -->
+<canvas id="solCanvas" width="320" height="160"></canvas>
+
+<div class="table-container">
+<table id="tabla">
+<thead>
+<tr>
+<th>Hora</th>
+<th>mV</th>
+<th>W/m²</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+</div>
+
+<button class="save-btn" onclick="descargarCSV()">Guardar CSV</button>
+
+</div>
+
+<script>
+
+let datos=[]
+
+/* ========================= */
+/* CALCULO PRINCIPAL */
+/* ========================= */
+
+function calcular(){
+
+let mv=parseFloat(document.getElementById("mv").value)
+if(isNaN(mv)) return
+
+let irradiancia=(mv*1000)/10.55
+
+mostrarResultado(irradiancia)
+dibujarMedidor(irradiancia)
+estimarTemperatura(irradiancia)
+dibujarSol()
+registrarDato(mv,irradiancia)
+
+}
+
+/* ========================= */
+/* RESULTADO */
+/* ========================= */
+
+function mostrarResultado(valor){
+
+let color="green"
+
+if(valor<300) color="blue"
+else if(valor<700) color="orange"
+else color="red"
+
+let div=document.getElementById("resultado")
+div.style.color=color
+
+div.innerHTML=valor.toFixed(2)+" W/m²"
+
+}
+
+/* ========================= */
+/* TEMPERATURA ESTIMADA */
+/* modelo simple educativo */
+/* ========================= */
+
+function estimarTemperatura(irr){
+
+let temp=15+(irr*0.02)
+
+document.getElementById("temp").innerHTML=
+"Temperatura estimada: "+temp.toFixed(1)+" °C"
+
+}
+
+/* ========================= */
+/* MEDIDOR ANALÓGICO */
+/* ========================= */
+
+function dibujarMedidor(valor){
+
+let canvas=document.getElementById("gauge")
+let ctx=canvas.getContext("2d")
+
+ctx.clearRect(0,0,canvas.width,canvas.height)
+
+let cx=160
+let cy=160
+let radio=120
+
+let max=1200
+let anguloValor=(valor/max)*Math.PI
+
+function arco(inicio,fin,color){
+ctx.beginPath()
+ctx.arc(cx,cy,radio,inicio,fin)
+ctx.lineWidth=18
+ctx.strokeStyle=color
+ctx.stroke()
+}
+
+arco(Math.PI,Math.PI+Math.PI*0.25,"blue")
+arco(Math.PI+Math.PI*0.25,Math.PI+Math.PI*0.55,"green")
+arco(Math.PI+Math.PI*0.55,Math.PI+Math.PI*0.8,"orange")
+arco(Math.PI+Math.PI*0.8,2*Math.PI,"red")
+
+ctx.fillStyle="black"
+ctx.font="12px Arial"
+
+for(let i=0;i<=1200;i+=200){
+
+let ang=Math.PI+(i/max)*Math.PI
+
+let x=cx+Math.cos(ang)*(radio-25)
+let y=cy+Math.sin(ang)*(radio-25)
+
+ctx.fillText(i,x-10,y+5)
+
+}
+
+let ang=Math.PI+anguloValor
+
+let x=cx+Math.cos(ang)*(radio-30)
+let y=cy+Math.sin(ang)*(radio-30)
+
+ctx.beginPath()
+ctx.moveTo(cx,cy)
+ctx.lineTo(x,y)
+ctx.lineWidth=4
+ctx.strokeStyle="black"
+ctx.stroke()
+
+ctx.beginPath()
+ctx.arc(cx,cy,6,0,2*Math.PI)
+ctx.fillStyle="black"
+ctx.fill()
+
+}
+
+/* ========================= */
+/* POSICION DEL SOL */
+/* modelo gráfico por hora */
+/* ========================= */
+
+function dibujarSol(){
+
+let canvas=document.getElementById("solCanvas")
+let ctx=canvas.getContext("2d")
+
+ctx.clearRect(0,0,canvas.width,canvas.height)
+
+let hora=new Date().getHours()+new Date().getMinutes()/60
+
+let salida=6
+let puesta=18
+
+let progreso=(hora-salida)/(puesta-salida)
+
+if(progreso<0) progreso=0
+if(progreso>1) progreso=1
+
+let x=20+progreso*280
+let y=120-Math.sin(progreso*Math.PI)*80
+
+/* horizonte */
+ctx.beginPath()
+ctx.moveTo(10,120)
+ctx.lineTo(310,120)
+ctx.stroke()
+
+/* trayectoria */
+ctx.beginPath()
+ctx.arc(160,120,140,Math.PI,2*Math.PI)
+ctx.strokeStyle="#aaa"
+ctx.stroke()
+
+/* sol */
+ctx.beginPath()
+ctx.arc(x,y,12,0,2*Math.PI)
+ctx.fillStyle="orange"
+ctx.fill()
+
+}
+
+/* ========================= */
+/* UBICACION GPS */
+/* ========================= */
+
+function obtenerUbicacion(){
+
+if(!navigator.geolocation) return
+
+navigator.geolocation.getCurrentPosition(async pos=>{
+
+let lat=pos.coords.latitude.toFixed(4)
+let lon=pos.coords.longitude.toFixed(4)
+
+let ciudad=""
+
+try{
+
+/* reverse geocoding con OpenStreetMap */
+let url=`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
+
+let res=await fetch(url)
+let data=await res.json()
+
+ciudad=
+ data.address.city ||
+ data.address.town ||
+ data.address.village ||
+ data.address.state || ""
+
+}catch(e){
+ciudad=""
+}
+
+let texto=`Ubicación: ${lat}, ${lon}`
+
+if(ciudad!="") texto+=`, ${ciudad}`
+
+
+document.getElementById("ubicacion").innerHTML=texto
+
+})
+
+}
+
+obtenerUbicacion()
+dibujarSol()
+
+/* ========================= */
+/* REGISTRO DATOS */
+/* ========================= */
+
+function registrarDato(mv,irr){
+
+let hora=new Date().toLocaleTimeString()
+
+datos.push({hora,mv,irr})
+
+let tabla=document.querySelector("#tabla tbody")
+
+let row=tabla.insertRow()
+row.insertCell(0).innerText=hora
+row.insertCell(1).innerText=mv
+row.insertCell(2).innerText=irr.toFixed(2)
+
+}
+
+/* ========================= */
+/* EXPORTAR CSV */
+/* ========================= */
+
+function descargarCSV(){
+
+let csv="Hora,mV,W/m2\n"
+
+datos.forEach(d=>{
+
+csv+=`${d.hora},${d.mv},${d.irr}\n`
+
+})
+
+let blob=new Blob([csv],{type:"text/csv"})
+
+let a=document.createElement("a")
+a.href=URL.createObjectURL(blob)
+a.download="datos_piranometro.csv"
+a.click()
+
+}
+
+</script>
+
+</body>
+</html>
