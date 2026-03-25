@@ -160,7 +160,7 @@ let datos=[]
 
 function calcular(){
 
-let mv=parseFloat(document.getElementById("mv").value)
+let v=parseFloat(document.getElementById("v").value)
 if(isNaN(v)) return
 
 let irradiancia=(v*10000)/10.55
@@ -169,7 +169,7 @@ mostrarResultado(irradiancia)
 dibujarMedidor(irradiancia)
 estimarTemperatura(irradiancia)
 dibujarSol()
-registrarDato(mv,irradiancia)
+registrarDato(v,irradiancia)
 
 }
 
@@ -366,17 +366,17 @@ dibujarSol()
 /* REGISTRO DATOS */
 /* ========================= */
 
-function registrarDato(mv,irr){
+function registrarDato(v,irr){
 
 let hora=new Date().toLocaleTimeString()
 
-datos.push({hora,mv,irr})
+datos.push({hora,v,irr})
 
 let tabla=document.querySelector("#tabla tbody")
 
 let row=tabla.insertRow()
 row.insertCell(0).innerText=hora
-row.insertCell(1).innerText=mv
+row.insertCell(1).innerText=v
 row.insertCell(2).innerText=irr.toFixed(2)
 
 }
@@ -387,11 +387,11 @@ row.insertCell(2).innerText=irr.toFixed(2)
 
 function descargarCSV(){
 
-let csv="Hora,mV,W/m2\n"
+let csv="Hora,V,W/m2\n"
 
 datos.forEach(d=>{
 
-csv+=`${d.hora},${d.mv},${d.irr}\n`
+csv+=`${d.hora},${d.v},${d.irr}\n`
 
 })
 
