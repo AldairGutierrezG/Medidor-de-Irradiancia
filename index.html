@@ -138,7 +138,7 @@ background:#1b8a3c;
 <thead>
 <tr>
 <th>Hora</th>
-<th>mV</th>
+<th>V</th>
 <th>W/m²</th>
 </tr>
 </thead>
@@ -163,7 +163,7 @@ function calcular(){
 let mv=parseFloat(document.getElementById("mv").value)
 if(isNaN(v)) return
 
-let irradiancia=((v*10)*1000)/10.55
+let irradiancia=(v*10000)/10.55
 
 mostrarResultado(irradiancia)
 dibujarMedidor(irradiancia)
