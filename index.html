@@ -390,17 +390,21 @@ function descargarCSV(){
 let csv="Hora,V,W/m2\n"
 
 datos.forEach(d=>{
-
 csv+=`${d.hora},${d.v},${d.irr}\n`
-
 })
 
-let blob=new Blob([csv],{type:"text/csv"})
+if(navigator.share){
 
-let a=document.createElement("a")
-a.href=URL.createObjectURL(blob)
-a.download="datos_piranometro.csv"
-a.click()
+navigator.share({
+title:"Datos Piranómetro",
+text:csv
+})
+
+}else{
+
+alert("Tu dispositivo no soporta compartir archivos")
+
+}
 
 }
 
