@@ -151,6 +151,21 @@ background:#1b8a3c;
 </div>
 
 <script>
+ const URL_SCRIPT = "https://script.google.com/a/macros/utlaguna.edu.mx/s/AKfycbzs5gJRFhEhpwQwwcxkJmr_M-xzn5OvUMU1XDefvxqPb6bT_jIB2VwNuc6v7BpE_kTV/exec"
+
+function calcular(){
+
+let v=parseFloat(document.getElementById("v").value)
+if(isNaN(v)) return
+
+let irr=(v*10000)/10.55
+
+document.getElementById("resultado").innerHTML=
+irr.toFixed(2)+" W/m²"
+
+registrarDato(v,irr)
+
+}
 
 let datos=[]
 
@@ -398,7 +413,7 @@ row.insertCell(2).innerText=irr.toFixed(2)
 
  function enviarASheets(hora,v,irr,lat,lon){
 
-fetch("https://script.google.com/a/macros/utlaguna.edu.mx/s/AKfycbzs5gJRFhEhpwQwwcxkJmr_M-xzn5OvUMU1XDefvxqPb6bT_jIB2VwNuc6v7BpE_kTV/exec",{
+fetch(URL_SCRIPT,{
 method:"POST",
 body: JSON.stringify({
 hora: hora,
