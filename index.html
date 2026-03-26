@@ -398,7 +398,7 @@ row.insertCell(2).innerText=irr.toFixed(2)
 
  function enviarASheets(hora,v,irr,lat,lon){
 
-fetch(URL_SCRIPT,{
+fetch("https://script.google.com/a/macros/utlaguna.edu.mx/s/AKfycbzs5gJRFhEhpwQwwcxkJmr_M-xzn5OvUMU1XDefvxqPb6bT_jIB2VwNuc6v7BpE_kTV/exec",{
 method:"POST",
 body: JSON.stringify({
 hora: hora,
