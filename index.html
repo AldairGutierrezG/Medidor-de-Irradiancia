@@ -370,16 +370,51 @@ function registrarDato(v,irr){
 
 let hora=new Date().toLocaleTimeString()
 
+let lat = ""
+let lon = ""
+
+if(navigator.geolocation){
+navigator.geolocation.getCurrentPosition(pos=>{
+lat = pos.coords.latitude
+lon = pos.coords.longitude
+
+enviarASheets(hora,v,irr,lat,lon)
+})
+}else{
+enviarASheets(hora,v,irr,"","")
+}
+
+/* tabla local */
 datos.push({hora,v,irr})
 
 let tabla=document.querySelector("#tabla tbody")
-
 let row=tabla.insertRow()
+
 row.insertCell(0).innerText=hora
 row.insertCell(1).innerText=v
 row.insertCell(2).innerText=irr.toFixed(2)
 
+ }
+
+ function enviarASheets(hora,v,irr,lat,lon){
+
+fetch(URL_SCRIPT,{
+method:"POST",
+body: JSON.stringify({
+hora: hora,
+voltaje: v,
+irradiancia: irr,
+lat: lat,
+lon: lon
+}),
+headers:{
+"Content-Type":"application/json"
 }
+})
+.then(res=>console.log("Guardado en Sheets"))
+.catch(err=>console.error(err))
+
+ }
 
 /* ========================= */
 /* EXPORTAR CSV */
