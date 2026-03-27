@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Medidor Solar LabVolt</title>
 
-<link rel="manifest" href='data:application/manifest+json,{"name":"Medidor Solar LabVolt","short_name":"SolarLabVolt","start_url":".","display":"standalone","background_color":"#ffffff","theme_color":"#0c4a7a"}'>
-
 <style>
 body{
 font-family:Arial, sans-serif;
@@ -148,14 +146,29 @@ background:#1b8a3c;
 
 <button class="save-btn" onclick="descargarCSV()">Guardar CSV</button>
 
+<button onclick="nuevoRegistro()" style="background:#c0392b;">
+Nuevo Registro
+</button>
+
 </div>
 
 <script>
 
-let datos=[]
+/* ========================= */
+/* Guardar Ubicación */
+/* ========================= */
+
+let latitud = null
+let longitud = null
 
 /* ========================= */
-/* CALCULO PRINCIPAL */
+/* DATOS (Not Refresh) */
+/* ========================= */
+
+let datos = JSON.parse(localStorage.getItem("datosPiranometro")) || []
+
+/* ========================= */
+/* CALCULO */
 /* ========================= */
 
 function calcular(){
@@ -174,7 +187,7 @@ registrarDato(v,irradiancia)
 }
 
 /* ========================= */
-/* RESULTADO */
+/* RESULTADO (Graphic) */
 /* ========================= */
 
 function mostrarResultado(valor){
@@ -325,8 +338,11 @@ if(!navigator.geolocation) return
 
 navigator.geolocation.getCurrentPosition(async pos=>{
 
-let lat=pos.coords.latitude.toFixed(4)
-let lon=pos.coords.longitude.toFixed(4)
+latitud = pos.coords.latitude
+longitud = pos.coords.longitude
+
+let lat = latitud.toFixed(4)
+let lon = longitud.toFixed(4)
 
 let ciudad=""
 
@@ -363,15 +379,21 @@ obtenerUbicacion()
 dibujarSol()
 
 /* ========================= */
-/* REGISTRO DATOS */
+/* REGISTRO */
 /* ========================= */
 
 function registrarDato(v,irr){
 
 let hora=new Date().toLocaleTimeString()
 
-datos.push({hora,v,irr})
+let dato = {hora,v,irr}
 
+datos.push(dato)
+
+/* guardar local */
+localStorage.setItem("datosPiranometro", JSON.stringify(datos))
+
+/* tabla */
 let tabla=document.querySelector("#tabla tbody")
 
 let row=tabla.insertRow()
@@ -379,10 +401,65 @@ row.insertCell(0).innerText=hora
 row.insertCell(1).innerText=v
 row.insertCell(2).innerText=irr.toFixed(2)
 
+/* enviar a sheets */
+guardarEnSheets(dato)
+
 }
 
 /* ========================= */
-/* EXPORTAR CSV */
+/* GOOGLE SHEETS */
+/* ========================= */
+
+async function guardarEnSheets(dato){
+
+const url="https://script.google.com/macros/s/AKfycbym7w_yVbLj5flkP7zL1lDAY7N3cecnLt4FhN6tXPbAvRql-WuuqDtXkG8zeMQvMkSe/exec"
+
+const formData = new URLSearchParams()
+const irr = Number(dato.irr.toFixed(2))
+const volt = Number(dato.v.toFixed(4))
+
+formData.append("hora", dato.hora)
+formData.append("voltaje", volt)
+formData.append("irradiancia", irr)
+formData.append("lat", latitud)
+formData.append("lon", longitud)
+
+try{
+await fetch(url,{
+method:"POST",
+body: formData
+})
+
+console.log("✅ Enviado correctamente")
+
+}catch(e){
+console.log("❌ Error:", e)
+}
+
+}
+
+/* ========================= */
+/* CARGAR DATOS */
+/* ========================= */
+
+function cargarDatos(){
+
+let tabla=document.querySelector("#tabla tbody")
+tabla.innerHTML=""
+
+datos.forEach(d=>{
+let row=tabla.insertRow()
+row.insertCell(0).innerText=d.hora
+row.insertCell(1).innerText=d.v
+row.insertCell(2).innerText=d.irr.toFixed(2)
+})
+
+}
+
+cargarDatos()
+
+/* ========================= */
+/* CSV */
 /* ========================= */
 
 function descargarCSV(){
@@ -390,17 +467,30 @@ function descargarCSV(){
 let csv="Hora,V,W/m2\n"
 
 datos.forEach(d=>{
-
 csv+=`${d.hora},${d.v},${d.irr}\n`
-
 })
 
-let blob=new Blob([csv],{type:"text/csv"})
-
+let blob=new Blob([csv])
 let a=document.createElement("a")
 a.href=URL.createObjectURL(blob)
 a.download="datos_piranometro.csv"
 a.click()
+
+}
+
+/* ========================= */
+/* NUEVO REGISTRO */
+/* ========================= */
+
+function nuevoRegistro(){
+
+if(confirm("¿Borrar todos los datos?")){
+
+datos=[]
+localStorage.removeItem("datosPiranometro")
+document.querySelector("#tabla tbody").innerHTML=""
+
+}
 
 }
 
