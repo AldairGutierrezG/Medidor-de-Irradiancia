@@ -151,21 +151,6 @@ background:#1b8a3c;
 </div>
 
 <script>
- const URL_SCRIPT = "https://script.google.com/a/macros/utlaguna.edu.mx/s/AKfycbzs5gJRFhEhpwQwwcxkJmr_M-xzn5OvUMU1XDefvxqPb6bT_jIB2VwNuc6v7BpE_kTV/exec"
-
-function calcular(){
-
-let v=parseFloat(document.getElementById("v").value)
-if(isNaN(v)) return
-
-let irr=(v*10000)/10.55
-
-document.getElementById("resultado").innerHTML=
-irr.toFixed(2)+" W/m²"
-
-registrarDato(v,irr)
-
-}
 
 let datos=[]
 
@@ -385,51 +370,16 @@ function registrarDato(v,irr){
 
 let hora=new Date().toLocaleTimeString()
 
-let lat = ""
-let lon = ""
-
-if(navigator.geolocation){
-navigator.geolocation.getCurrentPosition(pos=>{
-lat = pos.coords.latitude
-lon = pos.coords.longitude
-
-enviarASheets(hora,v,irr,lat,lon)
-})
-}else{
-enviarASheets(hora,v,irr,"","")
-}
-
-/* tabla local */
 datos.push({hora,v,irr})
 
 let tabla=document.querySelector("#tabla tbody")
-let row=tabla.insertRow()
 
+let row=tabla.insertRow()
 row.insertCell(0).innerText=hora
 row.insertCell(1).innerText=v
 row.insertCell(2).innerText=irr.toFixed(2)
 
- }
-
- function enviarASheets(hora,v,irr,lat,lon){
-
-fetch(URL_SCRIPT,{
-method:"POST",
-body: JSON.stringify({
-hora: hora,
-voltaje: v,
-irradiancia: irr,
-lat: lat,
-lon: lon
-}),
-headers:{
-"Content-Type":"application/json"
 }
-})
-.then(res=>console.log("Guardado en Sheets"))
-.catch(err=>console.error(err))
-
- }
 
 /* ========================= */
 /* EXPORTAR CSV */
@@ -440,13 +390,17 @@ function descargarCSV(){
 let csv="Hora,V,W/m2\n"
 
 datos.forEach(d=>{
+
 csv+=`${d.hora},${d.v},${d.irr}\n`
+
 })
 
 let blob=new Blob([csv],{type:"text/csv"})
-let url=URL.createObjectURL(blob)
 
-window.open(url)
+let a=document.createElement("a")
+a.href=URL.createObjectURL(blob)
+a.download="datos_piranometro.csv"
+a.click()
 
 }
 
